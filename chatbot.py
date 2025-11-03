@@ -1,251 +1,198 @@
 import streamlit as st
-from transformers import pipeline
-import requests
-import json
+import random
 from datetime import datetime
-import pandas as pd
 
 # Setup the page
-st.set_page_config(page_title="OpenFraudLabs AI", page_icon="🛡️", layout="wide")
-
-# Custom CSS
-st.markdown("""
-<style>
-    .main-header {
-        font-size: 2.5rem;
-        color: #1f77b4;
-        text-align: center;
-        margin-bottom: 1rem;
-    }
-    .learning-section {
-        background-color: #f8f9fa;
-        border-radius: 10px;
-        padding: 20px;
-        margin: 10px 0;
-    }
-</style>
-""", unsafe_allow_html=True)
+st.set_page_config(page_title="OpenFraudLabs AI", page_icon="🛡️")
 
 # Title
-st.markdown('<div class="main-header">🛡️ OpenFraudLabs AI Assistant</div>', unsafe_allow_html=True)
-st.caption("Advanced Fraud Detection Expert • Continuous Learning • Real-time Research")
+st.title("🛡️ OpenFraudLabs AI Assistant")
+st.write("**Expert in Financial Fraud Detection & Risk Analytics**")
 
-# Initialize session state
+# Initialize chat history
 if "messages" not in st.session_state:
-    st.session_state.messages = []
-if "conversation_memory" not in st.session_state:
-    st.session_state.conversation_memory = []
-if "user_profile" not in st.session_state:
-    st.session_state.user_profile = {"interests": [], "expertise_level": "beginner"}
+    st.session_state.messages = [
+        {"role": "assistant", "content": "Hello! I'm OpenFraudLabs AI, your expert in fraud detection and risk analytics. How can I help you today?"}
+    ]
 
-# Load AI model
-@st.cache_resource
-def load_ai_model():
-    try:
-        model = pipeline("text-generation", model="microsoft/DialoGPT-medium")
-        return model
-    except:
-        return None
+# Pre-built expert knowledge base
+EXPERT_KNOWLEDGE = {
+    "greetings": [
+        "Hello! I'm OpenFraudLabs AI. How can I assist with fraud detection today?",
+        "Hi there! Ready to discuss fraud detection and risk analytics?",
+        "Welcome! I specialize in financial fraud detection. What would you like to know?"
+    ],
+    
+    "fraud_detection": [
+        "Fraud detection involves identifying suspicious activities using machine learning, rule-based systems, and behavioral analysis.",
+        "We detect fraud through anomaly detection, pattern recognition, and real-time monitoring systems.",
+        "Key fraud detection methods include: transaction monitoring, device fingerprinting, behavioral biometrics, and network analysis."
+    ],
+    
+    "xgboost": [
+        "XGBoost is excellent for fraud detection due to its handling of class imbalance. Use `scale_pos_weight` parameter to adjust for fraud prevalence.",
+        "For fraud detection with XGBoost: focus on precision-recall metrics, not accuracy. Handle class imbalance with proper weighting.",
+        """XGBoost Implementation:
+```python
+model = xgb.XGBClassifier(
+    n_estimators=150,
+    max_depth=8, 
+    learning_rate=0.05,
+    scale_pos_weight=10,  # Adjust based on your fraud ratio
+    subsample=0.8,
+    random_state=42
+)
+```"""
+    ],
+    
+    "feature_engineering": [
+        "Key features for fraud detection: transaction frequency, amount anomalies, geographic patterns, time-based features, and behavioral deviations.",
+        """Essential fraud features:
+- Transaction count per hour
+- Amount Z-scores  
+- Time since last transaction
+- Geographic velocity
+- Device fingerprint changes""",
+        "Feature engineering should capture behavioral anomalies and statistical outliers from normal user patterns."
+    ],
+    
+    "real_time": [
+        "Real-time fraud monitoring requires: streaming architecture (Kafka), fast feature computation, and low-latency model inference.",
+        "For real-time systems: use Redis for feature storage, Kafka for event streaming, and ensure <100ms response times.",
+        "Real-time architecture: event streaming → feature computation → model scoring → decision engine → action"
+    ],
+    
+    "sql_analysis": [
+        """SQL for fraud patterns:
+```sql
+SELECT user_id, COUNT(*) as tx_count, 
+       COUNT(DISTINCT country) as countries
+FROM transactions 
+WHERE created_at >= NOW() - INTERVAL 1 HOUR
+GROUP BY user_id 
+HAVING tx_count > 20 OR countries > 2;
+```""",
+        "Use SQL window functions to detect rapid succession transactions and geographic impossibilities.",
+        "SQL can identify: velocity patterns, amount testing, new merchant testing, and geographic anomalies."
+    ],
+    
+    "risk_management": [
+        "Credit risk management involves: predictive modeling, early warning systems, and collection optimization.",
+        "NPL reduction strategies: better underwriting, behavioral scoring, early intervention, and digital collections.",
+        "Risk metrics to track: NPL ratio, collection effectiveness, recovery rate, and cost per recovery."
+    ],
+    
+    "capabilities": [
+        "I can help with: machine learning for fraud, feature engineering, real-time systems, SQL analysis, risk management, and technical implementation.",
+        "My expertise includes: XGBoost models, anomaly detection, system architecture, fraud patterns, and risk analytics.",
+        "I specialize in: fraud detection algorithms, risk modeling, technical implementation, and best practices in financial security."
+    ],
+    
+    "fallback": [
+        "I specialize in fraud detection and risk analytics. Could you ask about machine learning, feature engineering, real-time systems, or risk management?",
+        "That's an interesting question! In fraud detection context, we typically focus on anomaly detection, pattern recognition, and risk assessment.",
+        "As a fraud detection expert, I can help you with technical implementation, algorithm selection, or system design for financial security."
+    ]
+}
 
-# Web search function
-def search_web(query):
-    """Search for real-time information online"""
-    try:
-        # Using DuckDuckGo instant answer API
-        url = f"https://api.duckduckgo.com/?q={query}&format=json&no_html=1"
-        response = requests.get(url, timeout=10)
-        data = response.json()
-        
-        if data.get('Abstract'):
-            return data['Abstract']
-        elif data.get('RelatedTopics'):
-            return data['RelatedTopics'][0]['Text'] if data['RelatedTopics'] else None
-        else:
-            return None
-    except:
-        return None
-
-# Learning and memory functions
-def update_user_profile(user_input, ai_response):
-    """Learn from conversations and update user profile"""
-    # Detect user interests
-    fraud_keywords = ['fraud', 'detection', 'xgboost', 'machine learning', 'risk', 'sql', 'feature', 'monitoring']
-    user_interests = []
+def get_ai_response(user_input):
+    """Get immediate, intelligent response without external APIs"""
+    input_lower = user_input.lower()
     
-    for keyword in fraud_keywords:
-        if keyword in user_input.lower():
-            user_interests.append(keyword)
+    # Greetings
+    if any(word in input_lower for word in ['hi', 'hello', 'hey', 'greetings']):
+        return random.choice(EXPERT_KNOWLEDGE["greetings"])
     
-    # Update profile
-    st.session_state.user_profile["interests"] = list(set(st.session_state.user_profile["interests"] + user_interests))
+    # What can you do?
+    elif any(word in input_lower for word in ['what can you do', 'capabilities', 'help']):
+        return random.choice(EXPERT_KNOWLEDGE["capabilities"])
     
-    # Store conversation for learning
-    st.session_state.conversation_memory.append({
-        "timestamp": datetime.now().isoformat(),
-        "user_input": user_input,
-        "ai_response": ai_response,
-        "topics": user_interests
-    })
-
-def get_contextual_response(user_input, conversation_history):
-    """Generate intelligent response based on context and learning"""
-    model = load_ai_model()
+    # Fraud detection topics
+    elif any(word in input_lower for word in ['fraud', 'detection']):
+        return random.choice(EXPERT_KNOWLEDGE["fraud_detection"])
     
-    # Build intelligent prompt with memory
-    system_prompt = """You are OpenFraudLabs AI, an expert financial fraud detection assistant with deep knowledge in:
-
-CORE EXPERTISE:
-- Machine Learning: XGBoost, Random Forests, Neural Networks for fraud detection
-- Real-time Systems: Kafka, Redis, streaming architecture
-- Feature Engineering: Transaction patterns, behavioral analytics
-- Risk Management: Credit risk, NPL reduction, portfolio analysis
-- Technical Implementation: Python, SQL, system design
-
-RESPONSE STYLE:
-- Be conversational and engaging like a human expert
-- Ask follow-up questions to understand user needs
-- Provide detailed, actionable advice
-- Admit when you don't know something and suggest research
-- Reference previous conversation context
-- Break down complex topics clearly
-
-Current conversation context:
-"""
+    # XGBoost
+    elif any(word in input_lower for word in ['xgboost', 'machine learning', 'model']):
+        return random.choice(EXPERT_KNOWLEDGE["xgboost"])
     
-    # Add recent conversation history
-    conversation_context = ""
-    for msg in conversation_history[-6:]:  # Last 6 exchanges for context
-        role = "User" if msg["role"] == "user" else "Assistant"
-        conversation_context += f"{role}: {msg['content']}\n"
+    # Feature engineering
+    elif any(word in input_lower for word in ['feature', 'engineering', 'variable']):
+        return random.choice(EXPERT_KNOWLEDGE["feature_engineering"])
     
-    # Add user profile context
-    profile_context = f"User interests: {', '.join(st.session_state.user_profile['interests'])}" if st.session_state.user_profile["interests"] else ""
+    # Real-time
+    elif any(word in input_lower for word in ['real-time', 'monitoring', 'streaming']):
+        return random.choice(EXPERT_KNOWLEDGE["real_time"])
     
-    full_prompt = f"{system_prompt}{conversation_context}{profile_context}\nUser: {user_input}\nAssistant:"
+    # SQL
+    elif any(word in input_lower for word in ['sql', 'query', 'database']):
+        return random.choice(EXPERT_KNOWLEDGE["sql_analysis"])
     
-    try:
-        result = model(
-            full_prompt,
-            max_new_tokens=300,
-            do_sample=True,
-            temperature=0.8,
-            top_p=0.9,
-            repetition_penalty=1.1
-        )
-        response = result[0]['generated_text'].split("Assistant:")[-1].strip()
-        return response
-    except:
-        return None
-
-# Sidebar with learning features
-with st.sidebar:
-    st.header("🧠 Learning & Research")
+    # Risk management
+    elif any(word in input_lower for word in ['risk', 'management', 'npl', 'credit']):
+        return random.choice(EXPERT_KNOWLEDGE["risk_management"])
     
-    with st.expander("🔍 Real-time Search", expanded=False):
-        search_query = st.text_input("Search online for:", placeholder="Latest fraud detection techniques...")
-        if st.button("Search Web") and search_query:
-            with st.spinner("Searching online..."):
-                search_result = search_web(search_query)
-                if search_result:
-                    st.success("Found information:")
-                    st.write(search_result)
-                else:
-                    st.info("No specific results found. Try different keywords.")
+    # Thank you
+    elif any(word in input_lower for word in ['thank', 'thanks']):
+        return "You're welcome! Feel free to ask more questions about fraud detection. I'm here to help! 🛡️"
     
-    with st.expander("📚 Your Learning Profile", expanded=False):
-        st.write(f"**Detected Interests:** {', '.join(st.session_state.user_profile['interests']) if st.session_state.user_profile['interests'] else 'None yet'}")
-        st.write(f"**Conversation History:** {len(st.session_state.conversation_memory)} exchanges")
-        
-        if st.button("Clear Learning Memory"):
-            st.session_state.conversation_memory = []
-            st.session_state.user_profile = {"interests": [], "expertise_level": "beginner"}
-            st.rerun()
+    # Goodbye
+    elif any(word in input_lower for word in ['bye', 'goodbye']):
+        return "Goodbye! Stay secure and feel free to return with more fraud detection questions! 🛡️"
     
-    with st.expander("💡 Quick Learning Topics", expanded=False):
-        topics = [
-            "XGBoost Hyperparameter Tuning",
-            "Real-time Feature Engineering", 
-            "Fraud Pattern SQL Queries",
-            "Model Evaluation Metrics",
-            "Risk-Based Authentication"
-        ]
-        for topic in topics:
-            if st.button(f"📖 {topic}"):
-                st.session_state.user_input = f"Explain {topic} in detail with examples"
-
-# Main chat interface
-col1, col2 = st.columns([3, 1])
-
-with col1:
-    st.subheader("💬 Conversation")
-    
-    # Display chat messages
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.write(message["content"])
-    
-    # Chat input
-    if "user_input" in st.session_state:
-        user_input = st.session_state.user_input
-        del st.session_state.user_input
+    # Fallback for unknown questions
     else:
-        user_input = st.chat_input("Ask me anything about fraud detection...")
+        return random.choice(EXPERT_KNOWLEDGE["fallback"])
 
-    if user_input:
-        # Add user message
-        st.session_state.messages.append({"role": "user", "content": user_input})
-        with st.chat_message("user"):
-            st.write(user_input)
-        
-        # Generate intelligent response
-        with st.chat_message("assistant"):
-            with st.spinner("🤔 Analyzing and researching..."):
-                # Try contextual AI response first
-                ai_response = get_contextual_response(user_input, st.session_state.messages)
-                
-                # If AI fails or needs enhancement, try web search
-                if not ai_response or "don't know" in ai_response.lower() or "uncertain" in ai_response.lower():
-                    st.info("🔍 Researching this topic online...")
-                    web_info = search_web(user_input)
-                    if web_info:
-                        ai_response = f"{ai_response}\n\n🔍 **Research Update:** I found some relevant information:\n\n{web_info}\n\nWould you like me to explore any specific aspect of this further?"
-                    elif not ai_response:
-                        ai_response = "I'm researching this topic. Based on my fraud detection expertise, I can help you with machine learning models, feature engineering, real-time systems, or risk management. Could you specify what aspect interests you most?"
-                
-                st.write(ai_response)
-        
-        # Add to conversation and update learning
-        st.session_state.messages.append({"role": "assistant", "content": ai_response})
-        update_user_profile(user_input, ai_response)
+# Display chat messages
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.write(message["content"])
 
-with col2:
-    st.subheader("🎯 Quick Actions")
+# Chat input
+if prompt := st.chat_input("Ask me anything about fraud detection..."):
+    # Add user message to chat history
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.write(prompt)
     
-    if st.button("🧠 Summarize Conversation"):
-        if st.session_state.messages:
-            summary = f"Conversation Summary:\n- Topics: {', '.join(st.session_state.user_profile['interests'])}\n- Exchanges: {len(st.session_state.messages)//2}\n- Last active: {datetime.now().strftime('%H:%M')}"
-            st.info(summary)
-        else:
-            st.info("No conversation yet")
+    # Get immediate AI response
+    response = get_ai_response(prompt)
     
-    if st.button("📊 Suggest Learning Path"):
-        interests = st.session_state.user_profile['interests']
-        if interests:
-            path = f"Based on your interest in {', '.join(interests)}, I recommend:\n\n"
-            if 'xgboost' in interests or 'machine learning' in interests:
-                path += "• Advanced XGBoost for fraud detection\n• Feature engineering techniques\n• Model evaluation metrics\n"
-            if 'sql' in interests:
-                path += "• Advanced fraud pattern queries\n• Real-time SQL monitoring\n• Performance optimization\n"
-            if 'risk' in interests:
-                path += "• Credit risk modeling\n• NPL reduction strategies\n• Portfolio analysis\n"
-            st.success(path)
-        else:
-            st.info("Start chatting to get personalized learning suggestions!")
+    # Display assistant response
+    with st.chat_message("assistant"):
+        st.write(response)
     
-    if st.button("🔄 New Topic"):
-        st.session_state.messages = []
+    # Add assistant response to chat history
+    st.session_state.messages.append({"role": "assistant", "content": response})
+
+# Sidebar with quick actions
+with st.sidebar:
+    st.header("🚀 Quick Actions")
+    
+    if st.button("🧹 Clear Chat"):
+        st.session_state.messages = [
+            {"role": "assistant", "content": "Hello! I'm OpenFraudLabs AI, your expert in fraud detection and risk analytics. How can I help you today?"}
+        ]
         st.rerun()
+    
+    st.header("💡 Quick Questions")
+    
+    quick_questions = [
+        "What is fraud detection?",
+        "How to use XGBoost for fraud?",
+        "Best features for fraud detection",
+        "SQL queries for fraud patterns",
+        "Real-time monitoring architecture",
+        "Credit risk management strategies"
+    ]
+    
+    for question in quick_questions:
+        if st.button(question):
+            st.session_state.messages.append({"role": "user", "content": question})
+            response = get_ai_response(question)
+            st.session_state.messages.append({"role": "assistant", "content": response})
+            st.rerun()
 
 # Footer
 st.markdown("---")
-st.markdown("**OpenFraudLabs AI** • Continuous Learning • Real-time Research • Expert Fraud Detection")
+st.markdown("**OpenFraudLabs AI** • Instant Responses • Expert Knowledge • Always Available")
