@@ -99,49 +99,63 @@ def get_ai_response(user_input):
     """Get immediate, intelligent response without external APIs"""
     input_lower = user_input.lower()
     
-    # Greetings
+    # Greetings - exact matches
     if any(word in input_lower for word in ['hi', 'hello', 'hey', 'greetings']):
         return random.choice(EXPERT_KNOWLEDGE["greetings"])
     
     # What can you do?
-    elif any(word in input_lower for word in ['what can you do', 'capabilities', 'help']):
+    elif any(phrase in input_lower for phrase in ['what can you do', 'capabilities', 'help me', 'what do you do']):
         return random.choice(EXPERT_KNOWLEDGE["capabilities"])
     
-    # Fraud detection topics
-    elif any(word in input_lower for word in ['fraud', 'detection']):
-        return random.choice(EXPERT_KNOWLEDGE["fraud_detection"])
-    
-    # XGBoost
-    elif any(word in input_lower for word in ['xgboost', 'machine learning', 'model']):
+    # XGBoost - specific terms
+    elif any(term in input_lower for term in ['xgboost', 'xgb', 'boosted trees', 'gradient boosting']):
         return random.choice(EXPERT_KNOWLEDGE["xgboost"])
     
-    # Feature engineering
-    elif any(word in input_lower for word in ['feature', 'engineering', 'variable']):
+    # Feature engineering - specific terms
+    elif any(term in input_lower for term in ['feature engineering', 'create features', 'what features', 'feature selection']):
         return random.choice(EXPERT_KNOWLEDGE["feature_engineering"])
     
-    # Real-time
-    elif any(word in input_lower for word in ['real-time', 'monitoring', 'streaming']):
+    # Real-time - specific terms
+    elif any(term in input_lower for term in ['real-time', 'real time', 'live monitoring', 'streaming data']):
         return random.choice(EXPERT_KNOWLEDGE["real_time"])
     
-    # SQL
-    elif any(word in input_lower for word in ['sql', 'query', 'database']):
+    # SQL - specific terms
+    elif any(term in input_lower for term in ['sql query', 'sql analysis', 'database query', 'write sql']):
         return random.choice(EXPERT_KNOWLEDGE["sql_analysis"])
     
-    # Risk management
-    elif any(word in input_lower for word in ['risk', 'management', 'npl', 'credit']):
+    # Risk management - specific terms
+    elif any(term in input_lower for term in ['risk management', 'credit risk', 'npl', 'non-performing', 'portfolio risk']):
         return random.choice(EXPERT_KNOWLEDGE["risk_management"])
+    
+    # Fraud detection - only when specifically asked about fraud
+    elif any(phrase in input_lower for phrase in ['what is fraud', 'fraud detection', 'detect fraud', 'how to find fraud']):
+        return random.choice(EXPERT_KNOWLEDGE["fraud_detection"])
     
     # Thank you
     elif any(word in input_lower for word in ['thank', 'thanks']):
         return "You're welcome! Feel free to ask more questions about fraud detection. I'm here to help! 🛡️"
     
     # Goodbye
-    elif any(word in input_lower for word in ['bye', 'goodbye']):
+    elif any(word in input_lower for word in ['bye', 'goodbye', 'see you']):
         return "Goodbye! Stay secure and feel free to return with more fraud detection questions! 🛡️"
     
-    # Fallback for unknown questions
+    # Fallback for unknown questions - more specific matching
     else:
-        return random.choice(EXPERT_KNOWLEDGE["fallback"])
+        # Check for general ML terms
+        if any(term in input_lower for term in ['machine learning', 'ml model', 'algorithm']):
+            return "For machine learning in fraud detection, XGBoost and Random Forests work well. Would you like specific implementation details?"
+        
+        # Check for data terms
+        elif any(term in input_lower for term in ['data', 'dataset', 'training']):
+            return "For fraud detection data, focus on class imbalance handling and feature engineering. Need guidance on specific data aspects?"
+        
+        # Check for technical terms
+        elif any(term in input_lower for term in ['code', 'programming', 'python', 'implement']):
+            return "I can provide code examples for fraud detection in Python, SQL, or system architecture. What specifically would you like to build?"
+        
+        # Generic fallback
+        else:
+            return f"I understand you're asking about: '{user_input}'. As a fraud detection expert, I can help with machine learning models, real-time systems, risk management, or technical implementation. What specific area interests you?"
 
 # Display chat messages
 for message in st.session_state.messages:
@@ -177,19 +191,19 @@ with st.sidebar:
     
     st.header("💡 Quick Questions")
     
-    quick_questions = [
-        "What is fraud detection?",
-        "How to use XGBoost for fraud?",
-        "Best features for fraud detection",
-        "SQL queries for fraud patterns",
-        "Real-time monitoring architecture",
-        "Credit risk management strategies"
-    ]
+    quick_questions = {
+        "What is fraud detection?": "fraud_detection",
+        "How to use XGBoost for fraud?": "xgboost", 
+        "Best features for fraud detection": "feature_engineering",
+        "SQL queries for fraud patterns": "sql_analysis",
+        "Real-time monitoring architecture": "real_time",
+        "Credit risk management": "risk_management"
+    }
     
-    for question in quick_questions:
+    for question, category in quick_questions.items():
         if st.button(question):
             st.session_state.messages.append({"role": "user", "content": question})
-            response = get_ai_response(question)
+            response = random.choice(EXPERT_KNOWLEDGE[category])
             st.session_state.messages.append({"role": "assistant", "content": response})
             st.rerun()
 
