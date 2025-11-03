@@ -52,9 +52,7 @@ def get_expert_fraud_response(user_question):
     
     # XGBoost and Machine Learning
     if any(word in user_lower for word in ['xgboost', 'machine learning', 'model', 'algorithm']):
-        return """**XGBoost for Fraud Detection**
-
-```python
+        xgboost_code = """
 import xgboost as xgb
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, precision_recall_curve
@@ -67,13 +65,12 @@ model = xgb.XGBClassifier(
     n_estimators=150,
     max_depth=8,
     learning_rate=0.05,
-    scale_pos_weight=scale_pos_weight,  # Critical for fraud detection
+    scale_pos_weight=scale_pos_weight,
     subsample=0.8,
     colsample_bytree=0.8,
     random_state=42
 )
 
-# Use stratified split
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, stratify=y, random_state=42
 )
@@ -81,3 +78,8 @@ X_train, X_test, y_train, y_test = train_test_split(
 model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
 print(classification_report(y_test, y_pred))
+"""
+        return f"""**XGBoost for Fraud Detection**
+
+```python
+{xgboost_code}
